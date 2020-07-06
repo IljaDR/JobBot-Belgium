@@ -3,7 +3,7 @@ import sqlite3
 
 class Database:
     def create_tables(self):
-        conn = sqlite3.connect('database/example.db')
+        conn = sqlite3.connect('database/companies.db')
 
         c = conn.cursor()
 
@@ -37,13 +37,11 @@ class Database:
         c.execute(''' SELECT count(name) FROM sqlite_master WHERE type='table' AND name='code' ''')
         if c.fetchone()[0] == 0:
             c.execute(''' CREATE TABLE code (
-                                EntityNumber varchar(16) NOT NULL,
-                                ActivityGroup varchar(8) NOT NULL,
-                                NaceVersion varchar(8) NOT NULL,
-                                NaceCode varchar(8) NOT NULL,
-                                Classification varchar(4),
-                                PRIMARY KEY (EntityNumber),
-                                FOREIGN KEY (EntityNumber) REFERENCES enterprise(EnterpriseNumber)
+                                Category varchar(16) NOT NULL,
+                                Code varchar(16) NOT NULL,
+                                Language varchar(16) NOT NULL,
+                                Description varchar(1024) NOT NULL,
+                                PRIMARY KEY (Category)
                                 ); ''')
             print('Created code table')
 
@@ -51,10 +49,18 @@ class Database:
         if c.fetchone()[0] == 0:
             c.execute(''' CREATE TABLE address (
                                 EntityNumber varchar(16) NOT NULL,
-                                ActivityGroup varchar(8) NOT NULL,
-                                NaceVersion varchar(8) NOT NULL,
-                                NaceCode varchar(8) NOT NULL,
-                                Classification varchar(4),
+                                TypeOfAddress varchar(8) NOT NULL,
+                                CountryNL varchar(64),
+                                CountryFR varchar(64),
+                                Zipcode varchar(8),
+                                MunicipalityNL varchar(32),
+                                MunicipalityFR varchar(32),
+                                StreetNL varchar(64),
+                                StreetFR varchar(64),
+                                HouseNumber varchar(8),
+                                Box varchar(8),
+                                ExtraAddressInfo varchar(8),
+                                DateStrikingOff varchar(8),
                                 PRIMARY KEY (EntityNumber),
                                 FOREIGN KEY (EntityNumber) REFERENCES enterprise(EnterpriseNumber)
                                 ); ''')
@@ -63,13 +69,11 @@ class Database:
         c.execute(''' SELECT count(name) FROM sqlite_master WHERE type='table' AND name='establishment' ''')
         if c.fetchone()[0] == 0:
             c.execute(''' CREATE TABLE establishment (
-                                EntityNumber varchar(16) NOT NULL,
-                                ActivityGroup varchar(8) NOT NULL,
-                                NaceVersion varchar(8) NOT NULL,
-                                NaceCode varchar(8) NOT NULL,
-                                Classification varchar(4),
-                                PRIMARY KEY (EntityNumber),
-                                FOREIGN KEY (EntityNumber) REFERENCES enterprise(EnterpriseNumber)
+                                EstablishmentNumber varchar(16) NOT NULL,
+                                StartDate Date NOT NULL,
+                                EnterpriseNumber varchar(16) NOT NULL,
+                                PRIMARY KEY (EnterpriseNumber),
+                                FOREIGN KEY (EnterpriseNumber) REFERENCES enterprise(EnterpriseNumber)
                                 ); ''')
             print('Created establishment table')
 
@@ -90,10 +94,9 @@ class Database:
         if c.fetchone()[0] == 0:
             c.execute(''' CREATE TABLE contact (
                                 EntityNumber varchar(16) NOT NULL,
-                                ActivityGroup varchar(8) NOT NULL,
-                                NaceVersion varchar(8) NOT NULL,
-                                NaceCode varchar(8) NOT NULL,
-                                Classification varchar(4),
+                                EntityContact varchar(8) NOT NULL,
+                                ContactType varchar(8) NOT NULL,
+                                Value varchar(64) NOT NULL,
                                 PRIMARY KEY (EntityNumber),
                                 FOREIGN KEY (EntityNumber) REFERENCES enterprise(EnterpriseNumber)
                                 ); ''')
