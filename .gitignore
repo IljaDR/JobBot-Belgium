@@ -112,3 +112,13 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Ignore data & database folders
+data/
+database/
+
+# Ignore Mac OS files
+.DS_Store
+
+# Ignore PyCharm preferences
+workspace.xml
