@@ -111,6 +111,7 @@ class Database:
                         ); ''')
 
         # Company websites
+        c.execute('DROP TABLE companyWebsite')
         c.execute(''' CREATE TABLE IF NOT EXISTS companyWebsite (
                                 CompanyID INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                                 EntityNumber varchar(16) NOT NULL,
@@ -125,7 +126,7 @@ class Database:
         conn.commit()
         conn.close()
 
-    def populate_tables(self):
+    def populate_base_tables(self):
         # TODO: replace this with error
         if not check_if_data_exists():
             return
@@ -320,25 +321,26 @@ class Database:
         conn.commit()
         conn.close()
 
-    def get_companies(self):
+    def populate_company_websites(self):
         conn = sqlite3.connect(DatabaseLocation)
         c = conn.cursor()
         data = []
+        line_count = 0
 
-        for row in c.execute('SELECT DISTINCT contact.Value, activity.EntityNumber, address.MunicipalityNL as Gemeente, enterprise.StartDate \
-                    FROM contact \
-                    INNER JOIN activity ON contact.EntityNumber = activity.EntityNumber \
-                    INNER JOIN address ON contact.EntityNumber = address.EntityNumber \
-                    INNER JOIN enterprise ON contact.EntityNumber = enterprise.EnterpriseNumber \
-                    WHERE (activity.NaceCode LIKE "62%" OR activity.NaceCode LIKE "63%") AND contact.ContactType = "WEB";'):
-
-            website = row[0]
-            entityNumber = row[1]
-            gemeente = row[2]
-            startDate = row[3]
-            data = [(website, entityNumber, gemeente, startDate)]
-            c.execute('INSERT INTO companyWebsite(EntityNumber, WebAddress, Gemeente, StartDate) values(?,?,?,?)', (website, entityNumber, gemeente, startDate))
-            print(data)
+        c.execute('''SELECT DISTINCT contact.Value, activity.EntityNumber, address.MunicipalityNL, enterprise.StartDate 
+                    FROM contact 
+                    INNER JOIN activity ON contact.EntityNumber = activity.EntityNumber 
+                    INNER JOIN address ON contact.EntityNumber = address.EntityNumber 
+                    INNER JOIN enterprise ON contact.EntityNumber = enterprise.EnterpriseNumber 
+                    WHERE (activity.NaceCode LIKE "62%" OR activity.NaceCode LIKE "63%") AND contact.ContactType = "WEB";''')
+        results = c.fetchall()
+        for row in results:
+            data += [(row[0],row[1],row[2],row[3])]
+            line_count+=1
+            if not line_count % 100 and line_count:
+                c.executemany('INSERT INTO companyWebsite(WebAddress, EntityNumber, Gemeente, StartDate) \
+                VALUES (?,?,?,?)', data)
+                del data[:]
 
         print("Added companies to website table")
         conn.commit()

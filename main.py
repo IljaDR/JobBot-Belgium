@@ -3,5 +3,5 @@ from database import Database
 
 db = Database()
 db.create_tables()
-db.populate_tables()
-db.get_companies()
+db.populate_base_tables()
+db.populate_company_websites()
