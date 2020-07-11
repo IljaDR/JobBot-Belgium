@@ -122,3 +122,5 @@ database/
 
 # Ignore PyCharm preferences
 workspace.xml
+
+web.html

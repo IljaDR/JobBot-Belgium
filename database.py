@@ -1,6 +1,6 @@
 import sqlite3
 import csv
-import os.path
+import os
 from os import path
 
 DatabaseLocation = "database/companies.db"
@@ -111,7 +111,6 @@ class Database:
                         ); ''')
 
         # Company websites
-        c.execute('DROP TABLE companyWebsite')
         c.execute(''' CREATE TABLE IF NOT EXISTS companyWebsite (
                                 CompanyID INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                                 EntityNumber varchar(16) NOT NULL,
@@ -327,22 +326,46 @@ class Database:
         data = []
         line_count = 0
 
-        c.execute('''SELECT DISTINCT contact.Value, activity.EntityNumber, address.MunicipalityNL, enterprise.StartDate 
-                    FROM contact 
-                    INNER JOIN activity ON contact.EntityNumber = activity.EntityNumber 
-                    INNER JOIN address ON contact.EntityNumber = address.EntityNumber 
-                    INNER JOIN enterprise ON contact.EntityNumber = enterprise.EnterpriseNumber 
-                    WHERE (activity.NaceCode LIKE "62%" OR activity.NaceCode LIKE "63%") AND contact.ContactType = "WEB";''')
-        results = c.fetchall()
-        for row in results:
-            data += [(row[0],row[1],row[2],row[3])]
-            line_count+=1
-            if not line_count % 100 and line_count:
-                c.executemany('INSERT INTO companyWebsite(WebAddress, EntityNumber, Gemeente, StartDate) \
-                VALUES (?,?,?,?)', data)
-                del data[:]
+        c.execute('SELECT COUNT(*) FROM companyWebsite')
+        result = c.fetchone()
+        if not result[0]:
+            c.execute('''SELECT DISTINCT contact.Value, activity.EntityNumber, address.MunicipalityNL, enterprise.StartDate 
+                        FROM contact 
+                        INNER JOIN activity ON contact.EntityNumber = activity.EntityNumber 
+                        INNER JOIN address ON contact.EntityNumber = address.EntityNumber 
+                        INNER JOIN enterprise ON contact.EntityNumber = enterprise.EnterpriseNumber 
+                        WHERE (activity.NaceCode LIKE "62%" OR activity.NaceCode LIKE "63%") AND contact.ContactType = "WEB";''')
+            results = c.fetchall()
+            for row in results:
+                data += [(row[0],row[1],row[2],row[3])]
+                line_count+=1
+                if not line_count % 100 and line_count:
+                    c.executemany('INSERT INTO companyWebsite(WebAddress, EntityNumber, Gemeente, StartDate) \
+                    VALUES (?,?,?,?)', data)
+                    del data[:]
 
-        print("Added companies to website table")
-        conn.commit()
+            print("Added companies to website table")
+            conn.commit()
         conn.close()
 
+    def get_all_websites(self):
+        conn = sqlite3.connect(DatabaseLocation)
+        c = conn.cursor()
+        if os.path.exists("web.html"):
+            os.remove("web.html")
+        f = open("web.html", "w+")
+
+        c.execute('''SELECT WebAddress FROM companyWebsite ORDER BY WebAddress ASC''')
+
+        results = c.fetchall()
+        for row in results:
+            index = row[0].find("//")
+            if index + 1:
+                urlPart = row[0][index+2:]
+            else:
+                urlPart = row[0]
+            url = "http://" + urlPart.strip()
+            f.write('<a href="'+url+'">'+row[0]+'</a><hr>\n')
+
+        f.close()
+        conn.close()
