@@ -111,12 +111,14 @@ class Database:
                         ); ''')
 
         # Company websites
+        c.execute('''DROP TABLE companyWebsite''')
         c.execute(''' CREATE TABLE IF NOT EXISTS companyWebsite (
                                 CompanyID INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                                 EntityNumber varchar(16) NOT NULL,
                                 WebAddress varchar(64) NOT NULL,
                                 Gemeente varchar(32),
                                 StartDate Date,
+                                NaceCode varchar(8) NOT NULL,
                                 FOREIGN KEY (EntityNumber) REFERENCES enterprise(EnterpriseNumber)
                                 ); ''')
 
@@ -329,19 +331,19 @@ class Database:
         c.execute('SELECT COUNT(*) FROM companyWebsite')
         result = c.fetchone()
         if not result[0]:
-            c.execute('''SELECT DISTINCT contact.Value, activity.EntityNumber, address.MunicipalityNL, enterprise.StartDate 
+            c.execute('''SELECT DISTINCT contact.Value, activity.EntityNumber, address.MunicipalityNL, enterprise.StartDate, activity.NaceCode 
                         FROM contact 
                         INNER JOIN activity ON contact.EntityNumber = activity.EntityNumber 
                         INNER JOIN address ON contact.EntityNumber = address.EntityNumber 
                         INNER JOIN enterprise ON contact.EntityNumber = enterprise.EnterpriseNumber 
-                        WHERE (activity.NaceCode LIKE "62%" OR activity.NaceCode LIKE "63%") AND contact.ContactType = "WEB";''')
+                        WHERE contact.ContactType = "WEB";''')
             results = c.fetchall()
             for row in results:
-                data += [(row[0],row[1],row[2],row[3])]
+                data += [(row[0],row[1],row[2],row[3],row[4])]
                 line_count+=1
                 if not line_count % 100 and line_count:
-                    c.executemany('INSERT INTO companyWebsite(WebAddress, EntityNumber, Gemeente, StartDate) \
-                    VALUES (?,?,?,?)', data)
+                    c.executemany('INSERT INTO companyWebsite(WebAddress, EntityNumber, Gemeente, StartDate, NaceCode) \
+                    VALUES (?,?,?,?,?)', data)
                     del data[:]
 
             print("Added companies to website table")
@@ -353,9 +355,9 @@ class Database:
         c = conn.cursor()
         if os.path.exists("web.html"):
             os.remove("web.html")
-        f = open("web.html", "w+")
+        f = open("web.html", "w+", encoding="utf-8")
 
-        c.execute('''SELECT WebAddress FROM companyWebsite ORDER BY WebAddress ASC''')
+        c.execute('''SELECT DISTINCT(WebAddress) FROM companyWebsite ORDER BY WebAddress ASC''')
 
         results = c.fetchall()
         for row in results:
@@ -365,7 +367,28 @@ class Database:
             else:
                 urlPart = row[0]
             url = "http://" + urlPart.strip()
+            print(row[0])
             f.write('<a href="'+url+'">'+row[0]+'</a><hr>\n')
 
+        f.close()
+        conn.close()
+
+    def get_IT_websites(self):
+        conn = sqlite3.connect(DatabaseLocation)
+        c = conn.cursor()
+        if os.path.exists("web.html"):
+            os.remove("web.html")
+        f = open("web.html", "w+", encoding="utf-8")
+        c.execute('''SELECT DISTINCT(WebAddress) FROM companyWebsite WHERE (activity.NaceCode LIKE "62%" OR activity.NaceCode LIKE "63%") ORDER BY WebAddress ASC''')
+        results = c.fetchall()
+        for row in results:
+            index = row[0].find("//")
+            if index + 1:
+                urlPart = row[0][index + 2:]
+            else:
+                urlPart = row[0]
+            url = "http://" + urlPart.strip()
+            print(row[0])
+            f.write('<a href="' + url + '">' + row[0] + '</a><hr>\n')
         f.close()
         conn.close()
